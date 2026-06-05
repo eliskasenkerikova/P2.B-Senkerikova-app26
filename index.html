@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Bufet na jedničku</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#fff8ef,#ffe7b8);
+    min-height:100vh;
+    padding:30px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+header{
+    background:white;
+    text-align:center;
+    padding:25px;
+    border-radius:20px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.15);
+    margin-bottom:25px;
+}
+
+.logo{
+    width:250px;
+    max-width:100%;
+}
+
+h1{
+    color:#4a2c0f;
+    margin-top:10px;
+    font-size:42px;
+}
+
+.slogan{
+    color:#d99000;
+    font-size:18px;
+    margin-top:5px;
+}
+
+.card{
+    background:white;
+    border-radius:20px;
+    padding:25px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.15);
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th{
+    background:#ffb300;
+    color:white;
+    padding:15px;
+}
+
+td{
+    padding:15px;
+    text-align:center;
+    border-bottom:1px solid #ddd;
+}
+
+input[type="number"]{
+    width:80px;
+    padding:8px;
+    border:1px solid #ccc;
+    border-radius:8px;
+    text-align:center;
+}
+
+.total{
+    margin-top:25px;
+    font-size:30px;
+    text-align:center;
+    font-weight:bold;
+    color:#4a2c0f;
+}
+
+.btn{
+    width:100%;
+    margin-top:25px;
+    padding:18px;
+    border:none;
+    border-radius:12px;
+    background:#ff9800;
+    color:white;
+    font-size:20px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.btn:hover{
+    background:#e68900;
+}
+
+.status{
+    text-align:center;
+    margin-top:20px;
+    font-weight:bold;
+    color:green;
+}
+
+footer{
+    text-align:center;
+    margin-top:20px;
+    color:#666;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+
+<img src="logo_bufettt.png" alt="Bufet na jedničku" class="logo">
+
+<h1>Bufet na jedničku</h1>
+
+<p class="slogan">
+Dobrá chuť, lepší den
+</p>
+
+</header>
+
+<div class="card">
+
+<table>
+
+<tr>
+<th>Produkt</th>
+<th>Cena</th>
+<th>Počet kusů</th>
+</tr>
+
+<tr>
+<td>🥪 Sendvič</td>
+<td>45 Kč</td>
+<td><input type="number" min="0" value="0" id="sendvic" onchange="prepocet()"></td>
+</tr>
+
+<tr>
+<td>🌭 Párek v rohlíku</td>
+<td>35 Kč</td>
+<td><input type="number" min="0" value="0" id="parek" onchange="prepocet()"></td>
+</tr>
+
+<tr>
+<td>🍎 Jablko</td>
+<td>15 Kč</td>
+<td><input type="number" min="0" value="0" id="jablko" onchange="prepocet()"></td>
+</tr>
+
+<tr>
+<td>🍫 Tatranka</td>
+<td>30 Kč</td>
+<td><input type="number" min="0" value="0" id="tatranka" onchange="prepocet()"></td>
+</tr>
+
+<tr>
+<td>🥖 Bageta šunková</td>
+<td>55 Kč</td>
+<td><input type="number" min="0" value="0" id="bageta" onchange="prepocet()"></td>
+</tr>
+
+<tr>
+<td>🧃 Ledový čaj</td>
+<td>25 Kč</td>
+<td><input type="number" min="0" value="0" id="ledovycaj" onchange="prepocet()"></td>
+</tr>
+
+</table>
+
+<div class="total">
+Celková cena: <span id="cena">0</span> Kč
+</div>
+
+<button class="btn" onclick="odeslatObjednavku()">
+ODESLAT OBJEDNÁVKU
+</button>
+
+<div id="stav" class="status"></div>
+
+</div>
+
+<footer>
+© 2026 Bufet na jedničku | Školní frontend aplikace
+</footer>
+
+</div>
+
+<script>
+
+function prepocet(){
+
+let sendvic = parseInt(document.getElementById("sendvic").value) || 0;
+let parek = parseInt(document.getElementById("parek").value) || 0;
+let jablko = parseInt(document.getElementById("jablko").value) || 0;
+let tatranka = parseInt(document.getElementById("tatranka").value) || 0;
+let bageta = parseInt(document.getElementById("bageta").value) || 0;
+let ledovycaj = parseInt(document.getElementById("ledovycaj").value) || 0;
+
+let celkem =
+(sendvic * 45) +
+(parek * 35) +
+(jablko * 15) +
+(tatranka * 30) +
+(bageta * 55) +
+(ledovycaj * 25);
+
+document.getElementById("cena").innerText = celkem;
+
+}
+
+function odeslatObjednavku(){
+
+let objednavka = {
+
+sendvic: document.getElementById("sendvic").value,
+parek: document.getElementById("parek").value,
+jablko: document.getElementById("jablko").value,
+tatranka: document.getElementById("tatranka").value,
+bageta: document.getElementById("bageta").value,
+ledovycaj: document.getElementById("ledovycaj").value,
+celkovaCena: document.getElementById("cena").innerText
+
+};
+
+console.log("Objednávka odeslána:");
+console.log(objednavka);
+
+document.getElementById("stav").innerHTML =
+"✓ Objednávka byla úspěšně odeslána do backendu (simulace).";
+
+}
+
+prepocet();
+
+</script>
+
+</body>
+</html>
