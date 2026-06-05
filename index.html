@@ -7,7 +7,6 @@
 <title>Bufet na jedničku</title>
 
 <style>
-
 *{
     margin:0;
     padding:0;
@@ -126,12 +125,24 @@ input[type="number"]{
     background:#e68900;
 }
 
+.csv-loader {
+    background: #fdf6e2;
+    border: 2px dashed #ffb300;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.csv-loader input {
+    margin-top: 5px;
+}
+
 footer{
     text-align:center;
     margin-top:20px;
     color:#666;
 }
-
 </style>
 </head>
 
@@ -140,70 +151,36 @@ footer{
 <div class="container">
 
 <header>
-
 <img src="logo_bufettt.png" alt="Bufet na jedničku" class="logo">
-
 <h1>Bufet na jedničku</h1>
-
-<p class="slogan">
-Dobrá chuť, lepší den
-</p>
-
+<p class="slogan">Dobrá chuť, lepší den</p>
 </header>
 
 <div class="card">
 
-<table>
+<!-- NAHRÁNÍ CSV Z EXCELU -->
+<div class="csv-loader">
+    <label style="font-weight: bold; color: #4a2c0f;">Aktualizovat ceník z Excelu (.csv):</label><br>
+    <input type="file" id="csvFile" accept=".csv" onchange="nactiSeznamZCsv()">
+</div>
 
-<tr>
-<th>Produkt</th>
-<th>Cena</th>
-<th>Počet kusů</th>
-</tr>
-
-<tr>
-<td>🥪 Sendvič</td>
-<td>45 Kč</td>
-<td><input type="number" min="0" value="0" id="sendvic" onchange="prepocet()"></td>
-</tr>
-
-<tr>
-<td>🌭 Párek v rohlíku</td>
-<td>35 Kč</td>
-<td><input type="number" min="0" value="0" id="parek" onchange="prepocet()"></td>
-</tr>
-
-<tr>
-<td>🍎 Jablko</td>
-<td>15 Kč</td>
-<td><input type="number" min="0" value="0" id="jablko" onchange="prepocet()"></td>
-</tr>
-
-<tr>
-<td>🍫 Tatranka</td>
-<td>30 Kč</td>
-<td><input type="number" min="0" value="0" id="tatranka" onchange="prepocet()"></td>
-</tr>
-
-<tr>
-<td>🥖 Bageta šunková</td>
-<td>55 Kč</td>
-<td><input type="number" min="0" value="0" id="bageta" onchange="prepocet()"></td>
-</tr>
-
-<tr>
-<td>🧃 Ledový čaj</td>
-<td>25 Kč</td>
-<td><input type="number" min="0" value="0" id="ledovycaj" onchange="prepocet()"></td>
-</tr>
-
+<!-- Tabulka se vygeneruje automaticky pomocí JavaScriptu -->
+<table id="tabulkaProduktu">
+    <thead>
+        <tr>
+            <th>Produkt</th>
+            <th>Cena</th>
+            <th>Počet kusů</th>
+        </tr>
+    </thead>
+    <tbody id="vnitrekTabulky">
+        <!-- Zde JavaScript doplní řádky -->
+    </tbody>
 </table>
 
 <div class="total">
 Celková cena: <span id="cena">0</span> Kč
 </div>
-
-<!-- ZAČÁTEK NOVÝCH POLÍ JMÉNO A TELEFON A EMAIL -->
 
 <div class="form-group">
 <label for="jmeno">VAŠE JMÉNO</label>
@@ -220,8 +197,6 @@ Celková cena: <span id="cena">0</span> Kč
 <input type="email" id="email" placeholder="vas.email@example.com" required>
 </div>
 
-<!-- KONEC NOVÝCH POLÍ JMÉNO A TELEFON A EMAIL -->
-
 <button class="btn" onclick="odeslatObjednavku()">
 ODESLAT OBJEDNÁVKU
 </button>
@@ -235,85 +210,130 @@ ODESLAT OBJEDNÁVKU
 </div>
 
 <script>
+// Výchozí data pro případ, že uživatel ještě nenahrál CSV soubor
+let produkty = [
+    { jmeno: "🥪 Sendvič", cena: 45 },
+    { jmeno: "🌭 Párek v rohlíku", cena: 35 },
+    { jmeno: "🍎 Jablko", cena: 15 },
+    { jmeno: "🍫 Tatranka", cena: 30 },
+    { jmeno: "🥖 Bageta šunková", cena: 55 },
+    { jmeno: "🧃 Ledový čaj", cena: 25 }
+];
+
+// Funkce pro vykreslení tabulky na základě pole 'produkty'
+function vykresliTabulku() {
+    let tbody = document.getElementById("vnitrekTabulky");
+    tbody.innerHTML = "";
+
+    produkty.forEach((produkt, index) => {
+        let radek = document.createElement("tr");
+        radek.innerHTML = `
+            <td>${produkt.jmeno}</td>
+            <td>${produkt.cena} Kč</td>
+            <td><input type="number" min="0" value="0" id="prod_${index}" data-cena="${produkt.cena}" data-jmeno="${produkt.jmeno}" onchange="prepocet()"></td>
+        `;
+        tbody.appendChild(radek);
+    });
+    prepocet();
+}
+
+// Funkce, která zpracuje nahraný CSV soubor z Excelu
+function nactiSeznamZCsv() {
+    let fileInput = document.getElementById("csvFile");
+    let file = fileInput.files[0];
+    if (!file) return;
+
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let text = e.target.result;
+        let raddky = text.split("\n");
+        let noveProdukty = [];
+
+        // Projdeme řádky (přeskočíme hlavičku i=0)
+        for (let i = 1; i < raddky.length; i++) {
+            let radek = raddky[i].trim();
+            if (radek === "") continue;
+
+            // Excel v češtině odděluje středníkem
+            let sloupce = radek.split(";");
+            if (sloupce.length >= 2) {
+                let nazev = sloupce[0].trim();
+                let cenaCislo = parseInt(sloupce[1].replace(/[^0-9]/g, "")) || 0;
+                
+                noveProdukty.push({
+                    jmeno: nazev,
+                    cena: cenaCislo
+                });
+            }
+        }
+
+        if (noveProdukty.length > 0) {
+            produkty = noveProdukty;
+            vykresliTabulku();
+        } else {
+            alert("Nepodařilo se načíst žádná data. Zkontrolujte formát CSV.");
+        }
+    };
+    reader.readAsText(file, "UTF-8");
+}
 
 function prepocet(){
-
-let sendvic = parseInt(document.getElementById("sendvic").value) || 0;
-let parek = parseInt(document.getElementById("parek").value) || 0;
-let jablko = parseInt(document.getElementById("jablko").value) || 0;
-let tatranka = parseInt(document.getElementById("tatranka").value) || 0;
-let bageta = parseInt(document.getElementById("bageta").value) || 0;
-let ledovycaj = parseInt(document.getElementById("ledovycaj").value) || 0;
-
-let celkem =
-(sendvic * 45) +
-(parek * 35) +
-(jablko * 15) +
-(tatranka * 30) +
-(bageta * 55) +
-(ledovycaj * 25);
-
-document.getElementById("cena").innerText = celkem;
-
+    let celkem = 0;
+    // Spočítá cenu přes všechny vygenerované inputy
+    produkty.forEach((produkt, index) => {
+        let input = document.getElementById(`prod_${index}`);
+        if (input) {
+            let ks = parseInt(input.value) || 0;
+            celkem += (ks * produkt.cena);
+        }
+    });
+    document.getElementById("cena").innerText = celkem;
 }
-
-/* ZAČÁTEK FUNKCE MAILTO */
 
 function odeslatObjednavku(){
+    let jmeno = document.getElementById("jmeno").value.trim();
+    let telefon = document.getElementById("telefon").value.trim();
+    let email = document.getElementById("email").value.trim();
 
-let jmeno = document.getElementById("jmeno").value.trim();
-let telefon = document.getElementById("telefon").value.trim();
-let email = document.getElementById("email").value.trim();
+    if(jmeno === "" || telefon === "" || email === ""){
+        alert("Vyplňte prosím všechny osobní údaje.");
+        return;
+    }
 
-if(jmeno === ""){
-alert("Vyplňte prosím své jméno.");
-return;
+    let celkem = parseInt(document.getElementById("cena").innerText) || 0;
+    if(celkem === 0){
+        alert("Vyberte si prosím alespoň jeden produkt k objednání.");
+        return;
+    }
+
+    let zprava =
+    "Objednávka z aplikace Bufet na jedničku\n\n" +
+    "Jméno: " + jmeno + "\n" +
+    "Telefon: " + telefon + "\n" +
+    "E-mail: " + email + "\n\n" +
+    "Objednané položky:\n";
+
+    // Dynamické ověření objednaných kusů ze všech načtených položek
+    produkty.forEach((produkt, index) => {
+        let input = document.getElementById(`prod_${index}`);
+        if (input) {
+            let ks = parseInt(input.value) || 0;
+            if (ks > 0) {
+                zprava += `- ${produkt.jmeno}: ${ks} ks\n`;
+            }
+        }
+    });
+
+    zprava += "\nCelková cena objednávky: " + celkem + " Kč";
+
+    window.location.href =
+    "mailto:senkerikova.eliska@kostka-skola.cz" +
+    "?subject=" + encodeURIComponent("Objednávka z aplikace Bufet na jedničku") +
+    "&body=" + encodeURIComponent(zprava);
 }
 
-if(telefon === ""){
-alert("Vyplňte prosím telefon.");
-return;
-}
-
-if(email === ""){
-alert("Vyplňte prosím e-mail.");
-return;
-}
-
-let sendvic = parseInt(document.getElementById("sendvic").value) || 0;
-let parek = parseInt(document.getElementById("parek").value) || 0;
-let jablko = parseInt(document.getElementById("jablko").value) || 0;
-let tatranka = parseInt(document.getElementById("tatranka").value) || 0;
-let bageta = parseInt(document.getElementById("bageta").value) || 0;
-let ledovycaj = parseInt(document.getElementById("ledovycaj").value) || 0;
-
-let celkem = document.getElementById("cena").innerText;
-
-let zprava =
-"Objednávka z aplikace Bufet na jedničku\n\n" +
-"Jméno: " + jmeno + "\n" +
-"Telefon: " + telefon + "\n" +
-"E-mail: " + email + "\n\n" +
-"Objednané položky:\n\n" +
-"Sendvič: " + sendvic + " ks\n" +
-"Párek v rohlíku: " + parek + " ks\n" +
-"Jablko: " + jablko + " ks\n" +
-"Tatranka: " + tatranka + " ks\n" +
-"Bageta šunková: " + bageta + " ks\n" +
-"Ledový čaj: " + ledovycaj + " ks\n\n" +
-"Celková cena objednávky: " + celkem + " Kč";
-
-window.location.href =
-"mailto:senkerikova.eliska@kostka-skola.cz" +
-"?subject=" + encodeURIComponent("Objednávka z aplikace Bufet na jedničku") +
-"&body=" + encodeURIComponent(zprava);
-
-}
-
-/* KONEC FUNKCE MAILTO */
-
-prepocet();
-
+// První vykreslení výchozích dat při načtení stránky
+vykresliTabulku();
 </script>
 
 </body>
