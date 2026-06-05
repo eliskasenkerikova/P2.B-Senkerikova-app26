@@ -84,6 +84,24 @@ input[type="number"]{
     text-align:center;
 }
 
+.form-group{
+    margin-top:15px;
+}
+
+.form-group label{
+    display:block;
+    margin-bottom:5px;
+    font-weight:bold;
+    color:#4a2c0f;
+}
+
+.form-group input{
+    width:100%;
+    padding:12px;
+    border:1px solid #ccc;
+    border-radius:8px;
+}
+
 .total{
     margin-top:25px;
     font-size:30px;
@@ -102,18 +120,10 @@ input[type="number"]{
     color:white;
     font-size:20px;
     cursor:pointer;
-    transition:0.3s;
 }
 
 .btn:hover{
     background:#e68900;
-}
-
-.status{
-    text-align:center;
-    margin-top:20px;
-    font-weight:bold;
-    color:green;
 }
 
 footer{
@@ -193,11 +203,28 @@ Dobrá chuť, lepší den
 Celková cena: <span id="cena">0</span> Kč
 </div>
 
+<!-- ZAČÁTEK NOVÝCH POLÍ JMÉNO A TELEFON A EMAIL -->
+
+<div class="form-group">
+<label for="jmeno">VAŠE JMÉNO</label>
+<input type="text" id="jmeno" placeholder="Příjmení Jméno" required>
+</div>
+
+<div class="form-group">
+<label for="telefon">TELEFON</label>
+<input type="tel" id="telefon" placeholder="+420 000 000 000" required>
+</div>
+
+<div class="form-group">
+<label for="email">E-MAIL</label>
+<input type="email" id="email" placeholder="vas.email@example.com" required>
+</div>
+
+<!-- KONEC NOVÝCH POLÍ JMÉNO A TELEFON A EMAIL -->
+
 <button class="btn" onclick="odeslatObjednavku()">
 ODESLAT OBJEDNÁVKU
 </button>
-
-<div id="stav" class="status"></div>
 
 </div>
 
@@ -230,27 +257,60 @@ document.getElementById("cena").innerText = celkem;
 
 }
 
+/* ZAČÁTEK FUNKCE MAILTO */
+
 function odeslatObjednavku(){
 
-let objednavka = {
+let jmeno = document.getElementById("jmeno").value.trim();
+let telefon = document.getElementById("telefon").value.trim();
+let email = document.getElementById("email").value.trim();
 
-sendvic: document.getElementById("sendvic").value,
-parek: document.getElementById("parek").value,
-jablko: document.getElementById("jablko").value,
-tatranka: document.getElementById("tatranka").value,
-bageta: document.getElementById("bageta").value,
-ledovycaj: document.getElementById("ledovycaj").value,
-celkovaCena: document.getElementById("cena").innerText
+if(jmeno === ""){
+alert("Vyplňte prosím své jméno.");
+return;
+}
 
-};
+if(telefon === ""){
+alert("Vyplňte prosím telefon.");
+return;
+}
 
-console.log("Objednávka odeslána:");
-console.log(objednavka);
+if(email === ""){
+alert("Vyplňte prosím e-mail.");
+return;
+}
 
-document.getElementById("stav").innerHTML =
-"✓ Objednávka byla úspěšně odeslána do backendu (simulace).";
+let sendvic = parseInt(document.getElementById("sendvic").value) || 0;
+let parek = parseInt(document.getElementById("parek").value) || 0;
+let jablko = parseInt(document.getElementById("jablko").value) || 0;
+let tatranka = parseInt(document.getElementById("tatranka").value) || 0;
+let bageta = parseInt(document.getElementById("bageta").value) || 0;
+let ledovycaj = parseInt(document.getElementById("ledovycaj").value) || 0;
+
+let celkem = document.getElementById("cena").innerText;
+
+let zprava =
+"Objednávka z aplikace Bufet na jedničku\n\n" +
+"Jméno: " + jmeno + "\n" +
+"Telefon: " + telefon + "\n" +
+"E-mail: " + email + "\n\n" +
+"Objednané položky:\n\n" +
+"Sendvič: " + sendvic + " ks\n" +
+"Párek v rohlíku: " + parek + " ks\n" +
+"Jablko: " + jablko + " ks\n" +
+"Tatranka: " + tatranka + " ks\n" +
+"Bageta šunková: " + bageta + " ks\n" +
+"Ledový čaj: " + ledovycaj + " ks\n\n" +
+"Celková cena objednávky: " + celkem + " Kč";
+
+window.location.href =
+"mailto:senkerikova.eliska@kostka-skola.cz" +
+"?subject=" + encodeURIComponent("Objednávka z aplikace Bufet na jedničku") +
+"&body=" + encodeURIComponent(zprava);
 
 }
+
+/* KONEC FUNKCE MAILTO */
 
 prepocet();
 
