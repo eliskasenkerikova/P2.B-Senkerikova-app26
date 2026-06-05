@@ -7,7 +7,6 @@
 <title>Bufet na jedničku</title>
 
 <style>
-
 *{
     margin:0;
     padding:0;
@@ -131,7 +130,6 @@ footer{
     margin-top:20px;
     color:#666;
 }
-
 </style>
 </head>
 
@@ -147,7 +145,7 @@ footer{
 
 <div class="card">
 
-<!-- Tabulka produktů se vygeneruje zcela skrytě na pozadí z Excel dat -->
+<!-- Tabulka se vygeneruje automaticky na pozadí z Excel (CSV) souboru -->
 <table>
     <thead>
         <tr>
@@ -157,7 +155,7 @@ footer{
         </tr>
     </thead>
     <tbody id="vnitrekTabulky">
-        <!-- Sem JavaScript doplní řádky -->
+        <!-- Sem JavaScript automaticky doplní řádky z Excelu -->
     </tbody>
 </table>
 
@@ -165,7 +163,7 @@ footer{
 Celková cena: <span id="cena">0</span> Kč
 </div>
 
-<!-- ZAČÁTEK NOVÝCH POLÍ JMÉNO A TELEFON A EMAIL -->
+<!-- ZAČÁTEK POLÍ JMÉNO A TELEFON A EMAIL -->
 <div class="form-group">
 <label for="jmeno">VAŠE JMÉNO</label>
 <input type="text" id="jmeno" placeholder="Příjmení Jméno" required>
@@ -180,7 +178,7 @@ Celková cena: <span id="cena">0</span> Kč
 <label for="email">E-MAIL</label>
 <input type="email" id="email" placeholder="vas.email@example.com" required>
 </div>
-<!-- KONEC NOVÝCH POLÍ JMÉNO A TELEFON A EMAIL -->
+<!-- KONEC POLÍ JMÉNO A TELEFON A EMAIL -->
 
 <button class="btn" onclick="odeslatObjednavku()">
 ODESLAT OBJEDNÁVKU
@@ -195,40 +193,59 @@ ODESLAT OBJEDNÁVKU
 </div>
 
 <script>
-// Opravená CSV data s gramaticky správnou diakritikou
-const csvData = `produkt;cena
-🥪 Sendvič;45
-🌭 Párek v rohlíku;35
-🍎 Jablko;15
-🍫 Tatranka;30
-🥖 Bageta šunková;55
-🧃 Ledový čaj;25`;
-
 let produkty = [];
 
-// Funkce, která skrytě naparsuje textová CSV data do aplikace
-function nactiDataZCsvTextu() {
-    let radekPole = csvData.split("\n");
-    
-    // Projdeme řádky (vynecháme první řádek s hlavičkou produkt;cena)
-    for (let i = 1; i < radekPole.length; i++) {
-        let radek = radekPole[i].trim();
-        if (radek === "") continue;
+// Slovník pro automatickou opravu textu a přidání ikon na webu
+const opravyProduktu = {
+    "sendvic": "🥪 Sendvič",
+    "parek v rohliku": "🌭 Párek v rohlíku",
+    "jablko": "🍎 Jablko",
+    "tatranka": "🍫 Tatranka",
+    "bageta sunkov a": "🥖 Bageta šunková",
+    "bageta sunkova": "🥖 Bageta šunková",
+    "ledovy caj": "🧃 Ledový čaj"
+};
 
-        let sloupce = radek.split(";");
-        if (sloupce.length >= 2) {
-            let nazev = sloupce[0].trim();
-            let cenaCislo = parseInt(sloupce[1].replace(/[^0-9]/g, "")) || 0;
-
-            produkty.push({
-                jmeno: nazev,
-                cena: cenaCislo
-            });
+// FUNKCE: Skrytě stáhne CSV soubor z GitHubu a naparsuje ho
+function nactiCenikZGithubu() {
+    fetch('cenik.csv')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Soubor cenik.csv nebyl nalezen.');
         }
-    }
+        return response.text();
+    })
+    .then(text => {
+        let radekPole = text.split("\n");
+        produkty = []; 
+
+        for (let i = 1; i < radekPole.length; i++) {
+            let radek = radekPole[i].trim();
+            if (radek === "") continue;
+
+            let sloupce = radek.split(";");
+            if (sloupce.length >= 2) {
+                let suroveJmeno = sloupce[0].trim().toLowerCase();
+                let cenaCislo = parseInt(sloupce[1].replace(/[^0-9]/g, "")) || 0;
+
+                // Použije opravený název s diakritikou a ikonou, pokud existuje v našem slovníku
+                let krasneJmeno = opravyProduktu[suroveJmeno] || (sloupce[0].trim());
+
+                produkty.push({
+                    jmeno: krasneJmeno,
+                    cena: cenaCislo
+                });
+            }
+        }
+        vykresliTabulku();
+    })
+    .catch(error => {
+        console.error('Chyba při načítání ceníku:', error);
+        alert('Nepodařilo se automaticky načíst ceník ze souboru cenik.csv. Ujistěte se, že je soubor uložen na GitHubu ve stejné složce jako index.html.');
+    });
 }
 
-// Funkce pro vykreslení tabulky na stránku
+// FUNKCE: Vykreslení produktů do HTML tabulky
 function vykresliTabulku() {
     let tbody = document.getElementById("vnitrekTabulky");
     tbody.innerHTML = "";
@@ -242,8 +259,10 @@ function vykresliTabulku() {
         `;
         tbody.appendChild(radek);
     });
+    prepocet();
 }
 
+// FUNKCE: Přepočet celkové ceny
 function prepocet(){
     let celkem = 0;
     produkty.forEach((produkt, index) => {
@@ -256,21 +275,14 @@ function prepocet(){
     document.getElementById("cena").innerText = celkem;
 }
 
+// FUNKCE: Odeslání objednávky na e-mail
 function odeslatObjednavku(){
     let jmeno = document.getElementById("jmeno").value.trim();
     let telefon = document.getElementById("telefon").value.trim();
     let email = document.getElementById("email").value.trim();
 
-    if(jmeno === ""){
-        alert("Vyplňte prosím své jméno.");
-        return;
-    }
-    if(telefon === ""){
-        alert("Vyplňte prosím telefon.");
-        return;
-    }
-    if(email === ""){
-        alert("Vyplňte prosím e-mail.");
+    if(jmeno === "" || telefon === "" || email === ""){
+        alert("Vyplňte prosím všechny osobní údaje.");
         return;
     }
 
@@ -305,11 +317,8 @@ function odeslatObjednavku(){
     "&body=" + encodeURIComponent(zprava);
 }
 
-// Spuštění skrytého načtení a vykreslení při otevření webu
-nactiDataZCsvTextu();
-vykresliTabulku();
-prepocet();
-
+// Automatické načtení ceníku při spuštění webu
+nactiCenikZGithubu();
 </script>
 
 </body>
