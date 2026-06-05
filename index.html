@@ -145,7 +145,6 @@ footer{
 
 <div class="card">
 
-<!-- Tabulka se vygeneruje automaticky na pozadí z Excel (CSV) souboru -->
 <table>
     <thead>
         <tr>
@@ -155,7 +154,7 @@ footer{
         </tr>
     </thead>
     <tbody id="vnitrekTabulky">
-        <!-- Sem JavaScript automaticky doplní řádky z Excelu -->
+        <!-- Sem JavaScript automaticky doplní řádky -->
     </tbody>
 </table>
 
@@ -163,7 +162,6 @@ footer{
 Celková cena: <span id="cena">0</span> Kč
 </div>
 
-<!-- ZAČÁTEK POLÍ JMÉNO A TELEFON A EMAIL -->
 <div class="form-group">
 <label for="jmeno">VAŠE JMÉNO</label>
 <input type="text" id="jmeno" placeholder="Příjmení Jméno" required>
@@ -178,7 +176,6 @@ Celková cena: <span id="cena">0</span> Kč
 <label for="email">E-MAIL</label>
 <input type="email" id="email" placeholder="vas.email@example.com" required>
 </div>
-<!-- KONEC POLÍ JMÉNO A TELEFON A EMAIL -->
 
 <button class="btn" onclick="odeslatObjednavku()">
 ODESLAT OBJEDNÁVKU
@@ -195,7 +192,7 @@ ODESLAT OBJEDNÁVKU
 <script>
 let produkty = [];
 
-// Slovník pro automatickou opravu textu a přidání ikon na webu
+// Převodní slovník pro automatické doplnění diakritiky a emotikonů z Excelu na web
 const opravyProduktu = {
     "sendvic": "🥪 Sendvič",
     "parek v rohliku": "🌭 Párek v rohlíku",
@@ -206,46 +203,60 @@ const opravyProduktu = {
     "ledovy caj": "🧃 Ledový čaj"
 };
 
-// FUNKCE: Skrytě stáhne CSV soubor z GitHubu a naparsuje ho
-function nactiCenikZGithubu() {
-    fetch('cenik.csv')
+// Integrovaná záložní data přesně podle vašeho souboru (pro offline režim a testování)
+const zalozniCsvText = `produkt;cena
+sendvic;45
+parek v rohliku;35
+jablko;15
+tatranka;30
+bageta sunkov a;55
+ledovy caj;35`;
+
+// FUNKCE: Pokusí se stáhnout soubor data_bufet.csv z GitHubu, při neúspěchu použije zálohu
+function nactiCenik() {
+    fetch('data_bufet.csv')
     .then(response => {
         if (!response.ok) {
-            throw new Error('Soubor cenik.csv nebyl nalezen.');
+            throw new Error('Soubor data_bufet.csv nebyl nalezen.');
         }
         return response.text();
     })
     .then(text => {
-        let radekPole = text.split("\n");
-        produkty = []; 
-
-        for (let i = 1; i < radekPole.length; i++) {
-            let radek = radekPole[i].trim();
-            if (radek === "") continue;
-
-            let sloupce = radek.split(";");
-            if (sloupce.length >= 2) {
-                let suroveJmeno = sloupce[0].trim().toLowerCase();
-                let cenaCislo = parseInt(sloupce[1].replace(/[^0-9]/g, "")) || 0;
-
-                // Použije opravený název s diakritikou a ikonou, pokud existuje v našem slovníku
-                let krasneJmeno = opravyProduktu[suroveJmeno] || (sloupce[0].trim());
-
-                produkty.push({
-                    jmeno: krasneJmeno,
-                    cena: cenaCislo
-                });
-            }
-        }
-        vykresliTabulku();
+        zpracujCsvText(text);
     })
     .catch(error => {
-        console.error('Chyba při načítání ceníku:', error);
-        alert('Nepodařilo se automaticky načíst ceník ze souboru cenik.csv. Ujistěte se, že je soubor uložen na GitHubu ve stejné složce jako index.html.');
+        console.warn('Načítání z GitHubu se nezdařilo (lokální spuštění). Používám integrovanou kopii dat.');
+        zpracujCsvText(zalozniCsvText);
     });
 }
 
-// FUNKCE: Vykreslení produktů do HTML tabulky
+// FUNKCE: Zpracování řádků textu z CSV formátu
+function zpracujCsvText(text) {
+    let radekPole = text.split("\n");
+    produkty = []; 
+
+    for (let i = 1; i < radekPole.length; i++) {
+        let radek = radekPole[i].trim();
+        if (adek === "") continue;
+
+        let sloupce = radek.split(";");
+        if (sloupce.length >= 2) {
+            let suroveJmeno = sloupce[0].trim().toLowerCase();
+            let cenaCislo = parseInt(sloupce[1].replace(/[^0-9]/g, "")) || 0;
+
+            // Pokud název známe, zkrášlíme ho, jinak necháme text z Excelu
+            let krasneJmeno = opravyProduktu[suroveJmeno] || (sloupce[0].trim());
+
+            produkty.push({
+                jmeno: krasneJmeno,
+                cena: cenaCislo
+            });
+        }
+    }
+    vykresliTabulku();
+}
+
+// FUNKCE: Vytvoření řádků tabulky na stránce
 function vykresliTabulku() {
     let tbody = document.getElementById("vnitrekTabulky");
     tbody.innerHTML = "";
@@ -262,7 +273,7 @@ function vykresliTabulku() {
     prepocet();
 }
 
-// FUNKCE: Přepočet celkové ceny
+// FUNKCE: Výpočet finální útraty
 function prepocet(){
     let celkem = 0;
     produkty.forEach((produkt, index) => {
@@ -275,7 +286,7 @@ function prepocet(){
     document.getElementById("cena").innerText = celkem;
 }
 
-// FUNKCE: Odeslání objednávky na e-mail
+// FUNKCE: Sestavení objednávky a vyvolání e-mailového klienta
 function odeslatObjednavku(){
     let jmeno = document.getElementById("jmeno").value.trim();
     let telefon = document.getElementById("telefon").value.trim();
@@ -317,8 +328,8 @@ function odeslatObjednavku(){
     "&body=" + encodeURIComponent(zprava);
 }
 
-// Automatické načtení ceníku při spuštění webu
-nactiCenikZGithubu();
+// Spuštění inicializace při otevření stránky
+nactiCenik();
 </script>
 
 </body>
