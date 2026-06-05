@@ -7,6 +7,7 @@
 <title>Bufet na jedničku</title>
 
 <style>
+
 *{
     margin:0;
     padding:0;
@@ -125,24 +126,12 @@ input[type="number"]{
     background:#e68900;
 }
 
-.csv-loader {
-    background: #fdf6e2;
-    border: 2px dashed #ffb300;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.csv-loader input {
-    margin-top: 5px;
-}
-
 footer{
     text-align:center;
     margin-top:20px;
     color:#666;
 }
+
 </style>
 </head>
 
@@ -158,14 +147,8 @@ footer{
 
 <div class="card">
 
-<!-- NAHRÁNÍ CSV Z EXCELU -->
-<div class="csv-loader">
-    <label style="font-weight: bold; color: #4a2c0f;">Aktualizovat ceník z Excelu (.csv):</label><br>
-    <input type="file" id="csvFile" accept=".csv" onchange="nactiSeznamZCsv()">
-</div>
-
-<!-- Tabulka se vygeneruje automaticky pomocí JavaScriptu -->
-<table id="tabulkaProduktu">
+<!-- Tabulka produktů se vygeneruje zcela skrytě na pozadí z Excel dat -->
+<table>
     <thead>
         <tr>
             <th>Produkt</th>
@@ -174,7 +157,7 @@ footer{
         </tr>
     </thead>
     <tbody id="vnitrekTabulky">
-        <!-- Zde JavaScript doplní řádky -->
+        <!-- Sem JavaScript doplní řádky -->
     </tbody>
 </table>
 
@@ -182,6 +165,7 @@ footer{
 Celková cena: <span id="cena">0</span> Kč
 </div>
 
+<!-- ZAČÁTEK NOVÝCH POLÍ JMÉNO A TELEFON A EMAIL -->
 <div class="form-group">
 <label for="jmeno">VAŠE JMÉNO</label>
 <input type="text" id="jmeno" placeholder="Příjmení Jméno" required>
@@ -196,6 +180,7 @@ Celková cena: <span id="cena">0</span> Kč
 <label for="email">E-MAIL</label>
 <input type="email" id="email" placeholder="vas.email@example.com" required>
 </div>
+<!-- KONEC NOVÝCH POLÍ JMÉNO A TELEFON A EMAIL -->
 
 <button class="btn" onclick="odeslatObjednavku()">
 ODESLAT OBJEDNÁVKU
@@ -210,17 +195,43 @@ ODESLAT OBJEDNÁVKU
 </div>
 
 <script>
-// Výchozí data pro případ, že uživatel ještě nenahrál CSV soubor
-let produkty = [
-    { jmeno: "🥪 Sendvič", cena: 45 },
-    { jmeno: "🌭 Párek v rohlíku", cena: 35 },
-    { jmeno: "🍎 Jablko", cena: 15 },
-    { jmeno: "🍫 Tatranka", cena: 30 },
-    { jmeno: "🥖 Bageta šunková", cena: 55 },
-    { jmeno: "🧃 Ledový čaj", cena: 25 }
-];
+// Zde jsou zkopírovaná data přímo z vašeho Excelu (CSV)
+// Smajlíky u produktů v tabulce zůstanou zachovány automaticky
+const csvData = `produkt;cena
+🥪 sendvic;45
+🌭 parek v rohliku;35
+🍎 jablko;15
+🍫 tatranka;30
+🥖 bageta sunkov a;55
+🧃 ledovy caj;25`;
 
-// Funkce pro vykreslení tabulky na základě pole 'produkty'
+let produkty = [];
+
+// Funkce, která skrytě naparsuje textová CSV data do aplikace
+function nactiDataZCsvTextu() {
+    let radekPole = csvData.split("\n");
+    
+    // Projdeme řádky (vynecháme první řádek s hlavičkou produkt;cena)
+    for (let i = 1; i < radekPole.length; i++) {
+        let radek = radekPole[i].trim();
+        if (radek === "") continue;
+
+        let sloupce = radek.split(";");
+        if (sloupce.length >= 2) {
+            let nazev = sloupce[0].trim();
+            // První písmeno názvu uděláme velké pro lepší vzhled
+            nazev = nazev.charAt(0).toUpperCase() + nazev.slice(1);
+            let cenaCislo = parseInt(sloupce[1].replace(/[^0-9]/g, "")) || 0;
+
+            produkty.push({
+                jmeno: nazev,
+                cena: cenaCislo
+            });
+        }
+    }
+}
+
+// Funkce pro vykreslení tabulky na stránku
 function vykresliTabulku() {
     let tbody = document.getElementById("vnitrekTabulky");
     tbody.innerHTML = "";
@@ -228,58 +239,16 @@ function vykresliTabulku() {
     produkty.forEach((produkt, index) => {
         let radek = document.createElement("tr");
         radek.innerHTML = `
-            <td>${produkt.jmeno}</td>
+            <td style="text-align:left; padding-left:15%;">${produkt.jmeno}</td>
             <td>${produkt.cena} Kč</td>
-            <td><input type="number" min="0" value="0" id="prod_${index}" data-cena="${produkt.cena}" data-jmeno="${produkt.jmeno}" onchange="prepocet()"></td>
+            <td><input type="number" min="0" value="0" id="prod_${index}" onchange="prepocet()"></td>
         `;
         tbody.appendChild(radek);
     });
-    prepocet();
-}
-
-// Funkce, která zpracuje nahraný CSV soubor z Excelu
-function nactiSeznamZCsv() {
-    let fileInput = document.getElementById("csvFile");
-    let file = fileInput.files[0];
-    if (!file) return;
-
-    let reader = new FileReader();
-    reader.onload = function(e) {
-        let text = e.target.result;
-        let raddky = text.split("\n");
-        let noveProdukty = [];
-
-        // Projdeme řádky (přeskočíme hlavičku i=0)
-        for (let i = 1; i < raddky.length; i++) {
-            let radek = raddky[i].trim();
-            if (radek === "") continue;
-
-            // Excel v češtině odděluje středníkem
-            let sloupce = radek.split(";");
-            if (sloupce.length >= 2) {
-                let nazev = sloupce[0].trim();
-                let cenaCislo = parseInt(sloupce[1].replace(/[^0-9]/g, "")) || 0;
-                
-                noveProdukty.push({
-                    jmeno: nazev,
-                    cena: cenaCislo
-                });
-            }
-        }
-
-        if (noveProdukty.length > 0) {
-            produkty = noveProdukty;
-            vykresliTabulku();
-        } else {
-            alert("Nepodařilo se načíst žádná data. Zkontrolujte formát CSV.");
-        }
-    };
-    reader.readAsText(file, "UTF-8");
 }
 
 function prepocet(){
     let celkem = 0;
-    // Spočítá cenu přes všechny vygenerované inputy
     produkty.forEach((produkt, index) => {
         let input = document.getElementById(`prod_${index}`);
         if (input) {
@@ -295,8 +264,16 @@ function odeslatObjednavku(){
     let telefon = document.getElementById("telefon").value.trim();
     let email = document.getElementById("email").value.trim();
 
-    if(jmeno === "" || telefon === "" || email === ""){
-        alert("Vyplňte prosím všechny osobní údaje.");
+    if(jmeno === ""){
+        alert("Vyplňte prosím své jméno.");
+        return;
+    }
+    if(telefon === ""){
+        alert("Vyplňte prosím telefon.");
+        return;
+    }
+    if(email === ""){
+        alert("Vyplňte prosím e-mail.");
         return;
     }
 
@@ -313,13 +290,12 @@ function odeslatObjednavku(){
     "E-mail: " + email + "\n\n" +
     "Objednané položky:\n";
 
-    // Dynamické ověření objednaných kusů ze všech načtených položek
     produkty.forEach((produkt, index) => {
         let input = document.getElementById(`prod_${index}`);
         if (input) {
             let ks = parseInt(input.value) || 0;
             if (ks > 0) {
-                zprava += `- ${produkt.jmeno}: ${ks} ks\n`;
+                zprava += "- " + produkt.jmeno + ": " + ks + " ks\n";
             }
         }
     });
@@ -332,8 +308,11 @@ function odeslatObjednavku(){
     "&body=" + encodeURIComponent(zprava);
 }
 
-// První vykreslení výchozích dat při načtení stránky
+// Spuštění skrytého načtení a vykreslení při otevření webu
+nactiDataZCsvTextu();
 vykresliTabulku();
+prepocet();
+
 </script>
 
 </body>
