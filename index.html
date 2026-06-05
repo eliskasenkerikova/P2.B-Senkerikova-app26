@@ -7,6 +7,7 @@
 <title>Bufet na jedničku</title>
 
 <style>
+
 *{
     margin:0;
     padding:0;
@@ -130,6 +131,7 @@ footer{
     margin-top:20px;
     color:#666;
 }
+
 </style>
 </head>
 
@@ -145,6 +147,7 @@ footer{
 
 <div class="card">
 
+<!-- Tabulka produktů se vygeneruje zcela skrytě na pozadí z Excel dat -->
 <table>
     <thead>
         <tr>
@@ -154,7 +157,7 @@ footer{
         </tr>
     </thead>
     <tbody id="vnitrekTabulky">
-        <!-- Sem JavaScript automaticky doplní řádky -->
+        <!-- Sem JavaScript doplní řádky -->
     </tbody>
 </table>
 
@@ -162,6 +165,7 @@ footer{
 Celková cena: <span id="cena">0</span> Kč
 </div>
 
+<!-- ZAČÁTEK NOVÝCH POLÍ JMÉNO A TELEFON A EMAIL -->
 <div class="form-group">
 <label for="jmeno">VAŠE JMÉNO</label>
 <input type="text" id="jmeno" placeholder="Příjmení Jméno" required>
@@ -176,6 +180,7 @@ Celková cena: <span id="cena">0</span> Kč
 <label for="email">E-MAIL</label>
 <input type="email" id="email" placeholder="vas.email@example.com" required>
 </div>
+<!-- KONEC NOVÝCH POLÍ JMÉNO A TELEFON A EMAIL -->
 
 <button class="btn" onclick="odeslatObjednavku()">
 ODESLAT OBJEDNÁVKU
@@ -190,73 +195,40 @@ ODESLAT OBJEDNÁVKU
 </div>
 
 <script>
+// Opravená CSV data s gramaticky správnou diakritikou
+const csvData = `produkt;cena
+🥪 Sendvič;45
+🌭 Párek v rohlíku;35
+🍎 Jablko;15
+🍫 Tatranka;30
+🥖 Bageta šunková;55
+🧃 Ledový čaj;25`;
+
 let produkty = [];
 
-// Převodní slovník pro automatické doplnění diakritiky a emotikonů z Excelu na web
-const opravyProduktu = {
-    "sendvic": "🥪 Sendvič",
-    "parek v rohliku": "🌭 Párek v rohlíku",
-    "jablko": "🍎 Jablko",
-    "tatranka": "🍫 Tatranka",
-    "bageta sunkov a": "🥖 Bageta šunková",
-    "bageta sunkova": "🥖 Bageta šunková",
-    "ledovy caj": "🧃 Ledový čaj"
-};
-
-// Integrovaná záložní data přesně podle vašeho souboru (pro offline režim a testování)
-const zalozniCsvText = `produkt;cena
-sendvic;45
-parek v rohliku;35
-jablko;15
-tatranka;30
-bageta sunkov a;55
-ledovy caj;35`;
-
-// FUNKCE: Pokusí se stáhnout soubor data_bufet.csv z GitHubu, při neúspěchu použije zálohu
-function nactiCenik() {
-    fetch('data_bufet.csv')
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Soubor data_bufet.csv nebyl nalezen.');
-        }
-        return response.text();
-    })
-    .then(text => {
-        zpracujCsvText(text);
-    })
-    .catch(error => {
-        console.warn('Načítání z GitHubu se nezdařilo (lokální spuštění). Používám integrovanou kopii dat.');
-        zpracujCsvText(zalozniCsvText);
-    });
-}
-
-// FUNKCE: Zpracování řádků textu z CSV formátu
-function zpracujCsvText(text) {
-    let radekPole = text.split("\n");
-    produkty = []; 
-
+// Funkce, která skrytě naparsuje textová CSV data do aplikace
+function nactiDataZCsvTextu() {
+    let radekPole = csvData.split("\n");
+    
+    // Projdeme řádky (vynecháme první řádek s hlavičkou produkt;cena)
     for (let i = 1; i < radekPole.length; i++) {
         let radek = radekPole[i].trim();
-        if (adek === "") continue;
+        if (radek === "") continue;
 
         let sloupce = radek.split(";");
         if (sloupce.length >= 2) {
-            let suroveJmeno = sloupce[0].trim().toLowerCase();
+            let nazev = sloupce[0].trim();
             let cenaCislo = parseInt(sloupce[1].replace(/[^0-9]/g, "")) || 0;
 
-            // Pokud název známe, zkrášlíme ho, jinak necháme text z Excelu
-            let krasneJmeno = opravyProduktu[suroveJmeno] || (sloupce[0].trim());
-
             produkty.push({
-                jmeno: krasneJmeno,
+                jmeno: nazev,
                 cena: cenaCislo
             });
         }
     }
-    vykresliTabulku();
 }
 
-// FUNKCE: Vytvoření řádků tabulky na stránce
+// Funkce pro vykreslení tabulky na stránku
 function vykresliTabulku() {
     let tbody = document.getElementById("vnitrekTabulky");
     tbody.innerHTML = "";
@@ -270,10 +242,8 @@ function vykresliTabulku() {
         `;
         tbody.appendChild(radek);
     });
-    prepocet();
 }
 
-// FUNKCE: Výpočet finální útraty
 function prepocet(){
     let celkem = 0;
     produkty.forEach((produkt, index) => {
@@ -286,14 +256,21 @@ function prepocet(){
     document.getElementById("cena").innerText = celkem;
 }
 
-// FUNKCE: Sestavení objednávky a vyvolání e-mailového klienta
 function odeslatObjednavku(){
     let jmeno = document.getElementById("jmeno").value.trim();
     let telefon = document.getElementById("telefon").value.trim();
     let email = document.getElementById("email").value.trim();
 
-    if(jmeno === "" || telefon === "" || email === ""){
-        alert("Vyplňte prosím všechny osobní údaje.");
+    if(jmeno === ""){
+        alert("Vyplňte prosím své jméno.");
+        return;
+    }
+    if(telefon === ""){
+        alert("Vyplňte prosím telefon.");
+        return;
+    }
+    if(email === ""){
+        alert("Vyplňte prosím e-mail.");
         return;
     }
 
@@ -328,8 +305,11 @@ function odeslatObjednavku(){
     "&body=" + encodeURIComponent(zprava);
 }
 
-// Spuštění inicializace při otevření stránky
-nactiCenik();
+// Spuštění skrytého načtení a vykreslení při otevření webu
+nactiDataZCsvTextu();
+vykresliTabulku();
+prepocet();
+
 </script>
 
 </body>
