@@ -195,15 +195,14 @@ ODESLAT OBJEDNÁVKU
 </div>
 
 <script>
-// Zde jsou zkopírovaná data přímo z vašeho Excelu (CSV)
-// Smajlíky u produktů v tabulce zůstanou zachovány automaticky
+// Opravená CSV data s gramaticky správnou diakritikou
 const csvData = `produkt;cena
-🥪 sendvic;45
-🌭 parek v rohliku;35
-🍎 jablko;15
-🍫 tatranka;30
-🥖 bageta sunkov a;55
-🧃 ledovy caj;25`;
+🥪 Sendvič;45
+🌭 Párek v rohlíku;35
+🍎 Jablko;15
+🍫 Tatranka;30
+🥖 Bageta šunková;55
+🧃 Ledový čaj;25`;
 
 let produkty = [];
 
@@ -219,8 +218,6 @@ function nactiDataZCsvTextu() {
         let sloupce = radek.split(";");
         if (sloupce.length >= 2) {
             let nazev = sloupce[0].trim();
-            // První písmeno názvu uděláme velké pro lepší vzhled
-            nazev = nazev.charAt(0).toUpperCase() + nazev.slice(1);
             let cenaCislo = parseInt(sloupce[1].replace(/[^0-9]/g, "")) || 0;
 
             produkty.push({
